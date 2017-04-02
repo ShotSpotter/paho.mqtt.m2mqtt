@@ -335,6 +335,27 @@ namespace uPLibrary.Networking.M2Mqtt
         {
         }
 
+        public MqttClient(
+            string brokerHostName,
+            int brokerPort,
+            bool secure,
+            X509Certificate caCert,
+            X509Certificate clientCert,
+            MqttSslProtocols sslProtocol,
+            bool insecure
+       )
+    : this(brokerHostName,
+          brokerPort,
+          secure,
+          caCert,
+          clientCert,
+          sslProtocol,
+          (sender, certificate, chain, SslPolicyErrors) => { return true; },
+          null)
+        {
+        }
+
+
         /// <summary>
         /// Constructor
         /// </summary>
