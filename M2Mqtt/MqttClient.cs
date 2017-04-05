@@ -59,6 +59,66 @@ namespace uPLibrary.Networking.M2Mqtt
     /// </summary>
     public class MqttClient
     {
+
+    public static bool OverrideServerCertificateValidation(
+              object sender,
+              X509Certificate certificate,
+              X509Chain chain,
+              SslPolicyErrors pErrors)
+        {
+            bool accept = false;
+            switch (pErrors)
+            { // excessively liberal. customize as needed
+                case SslPolicyErrors.None:
+                    accept = true;
+                    break;
+                case SslPolicyErrors.RemoteCertificateChainErrors:
+                    accept = true;
+                    break;
+                case SslPolicyErrors.RemoteCertificateNameMismatch:
+                    accept = true;
+                    break;
+                case SslPolicyErrors.RemoteCertificateNotAvailable:
+                    accept = true;
+                    break;
+                default:
+                    break;
+            }
+            return accept;
+        }
+
+
+        public static bool MqttTestServerCertificate(string machineName, int port)
+        {
+            // Create a TCP/IP client socket.
+            // machineName is the host running the server application.
+            TcpClient client = new TcpClient(machineName, port);
+            Console.WriteLine("Client connected.");
+            // Create an SSL stream that will close the client's stream.
+            SslStream sslStream = new SslStream(
+                client.GetStream(),
+                false,
+                new RemoteCertificateValidationCallback (OverrideServerCertificateValidation),
+                null
+                );
+            // The server name must match the name on the server certificate.
+            try
+            {
+                sslStream.AuthenticateAsClient(machineName,null,SslProtocols.Tls12,true);
+            }
+            catch (AuthenticationException e)
+            {
+                Console.WriteLine("Exception: {0}", e.Message);
+                if (e.InnerException != null)
+                {
+                    Console.WriteLine("Inner exception: {0}", e.InnerException.Message);
+                }
+                Console.WriteLine("Authentication failed - closing the connection.");
+                client.Close();
+                return false;
+            }
+            return true;
+        }
 #if BROKER
         #region Constants ...
 
@@ -350,7 +410,7 @@ namespace uPLibrary.Networking.M2Mqtt
           caCert,
           clientCert,
           sslProtocol,
-          (sender, certificate, chain, SslPolicyErrors) => { return true; },
+          new RemoteCertificateValidationCallback(OverrideServerCertificateValidation),
           null)
         {
         }
